@@ -1,0 +1,34 @@
+{
+    "name": "brammm/cokido-planner",
+    "description": "Planning tool for Cokido day care",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Bram Van der Sype",
+            "email": "bram.vandersype@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "CokidoPlanner\\": "src/"
+        }
+    },
+    "require": {
+        "php": "^8.5",
+        "brammm/smart": "*@dev",
+        "crell/envmapper": "^1.1",
+        "lcobucci/clock": "^3.6"
+    },
+    "require-dev": {
+        "eventsauce/test-utilities": "^3.6"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "./packages/smart"
+        }
+    ],
+    "config": {
+        "sort-packages": true
+    }
+}

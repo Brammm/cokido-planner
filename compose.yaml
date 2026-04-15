@@ -1,0 +1,19 @@
+services:
+    php:
+        build:
+            dockerfile: ./.docker/php/Dockerfile
+            context: .
+            target: development
+        volumes:
+            - ./:/var/www/app
+        ports:
+            - "8800:80"
+        env_file:
+            -   .env
+    db:
+        image: mysql:8
+        environment:
+            MYSQL_DATABASE: cokido
+            MYSQL_ROOT_PASSWORD: root
+        ports:
+            - "3306:3306"
