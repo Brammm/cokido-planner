@@ -29,7 +29,7 @@ string-style = { enabled = true, style = "concatenation" }
 halstead = { effort-threshold = 7000 }
 
 [analyzer]
-plugins = []
+plugins = ["psr-container"]
 find-unused-definitions = true
 find-unused-expressions = true
 analyze-dead-code = true
