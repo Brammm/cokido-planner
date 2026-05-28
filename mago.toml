@@ -5,9 +5,9 @@ php-version = "8.5.0"
 
 [source]
 workspace = "."
-paths = ["src/"]
-includes = ["vendor"]
-excludes = ["packages", "vendor/nikic/fast-route/test/**"]
+paths = ["public", "src"]
+includes = ["packages", "vendor"]
+excludes = ["vendor/nikic/fast-route/test/**", "vendor/brammm/smart/**", "packages/*/vendor/**"]
 
 [source.glob]
 literal-separator = true
@@ -34,7 +34,7 @@ find-unused-definitions = true
 find-unused-expressions = true
 analyze-dead-code = true
 memoize-properties = true
-allow-possibly-undefined-array-keys = false
+strict-array-index-existence = true
 check-throws = false
 check-missing-override = true
 find-unused-parameters = true

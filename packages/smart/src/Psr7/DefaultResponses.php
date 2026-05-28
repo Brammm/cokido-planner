@@ -13,16 +13,24 @@ final class DefaultResponses
     {
         return new Psr17Factory()->createResponse(204);
     }
-    
-    public static function json($data, int $responseCode = 200): ResponseInterface
+
+    /**
+     * @throws \JsonException
+     * @throws \RuntimeException
+     */
+    public static function json(mixed $data, int $responseCode = 200): ResponseInterface
     {
         $responseFactory = new Psr17Factory();
         $response = $responseFactory->createResponse($responseCode);
-        
-        $response = $response->withHeader('Content-Type', 'application/json');
-        
-        $response->getBody()->write(json_encode($data));
-        
+
+        try {
+            $response = $response->withHeader('Content-Type', 'application/json');
+        } catch (\InvalidArgumentException $e) {
+            throw new \RuntimeException('Unable to set Content-Type header to application/json', 0, $e);
+        }
+
+        $response->getBody()->write(json_encode($data, JSON_THROW_ON_ERROR));
+
         return $response;
     }
 }
