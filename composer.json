@@ -16,7 +16,8 @@
     "require": {
         "php": "^8.5",
         "brammm/smart": "*@dev",
-        "crell/envmapper": "^1.1"
+        "crell/envmapper": "^1.1",
+        "patchlevel/event-sourcing": "^3.19"
     },
     "repositories": [
         {
