@@ -2,8 +2,8 @@ FROM composer:latest AS composer
 
 FROM php:8.5-fpm-alpine AS base
 
-RUN apk add --no-cache libzip-dev \
-    && docker-php-ext-install pdo pdo_mysql zip
+RUN apk add --no-cache libzip-dev postgresql-dev \
+    && docker-php-ext-install pdo pdo_pgsql zip
 
 WORKDIR /var/www/app
 

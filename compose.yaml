@@ -10,10 +10,19 @@ services:
             - "8800:80"
         env_file:
             -   .env
-    db:
-        image: mysql:8
+    db-events:
+        image: postgres:18-alpine
         environment:
-            MYSQL_DATABASE: cokido
-            MYSQL_ROOT_PASSWORD: root
+            POSTGRES_USER: cokido
+            POSTGRES_PASSWORD: cokido
+            POSTGRES_DB: events
         ports:
-            - "3306:3306"
+            - "5432:5432"
+    db-projections:
+        image: postgres:18-alpine
+        environment:
+            POSTGRES_USER: cokido
+            POSTGRES_PASSWORD: cokido
+            POSTGRES_DB: projections
+        ports:
+            - "5433:5432"
