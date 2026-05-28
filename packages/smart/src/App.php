@@ -102,11 +102,15 @@ final class App
 
             $container = $builder->build();
 
-            self::$slim = AppFactory::createFromContainer($container);
+            $app = AppFactory::createFromContainer($container);
 
             foreach ($this->contexts as $context) {
-                $context->routes(self::$slim);
+                $context->routes($app);
             }
+            
+            $app->addBodyParsingMiddleware();
+
+            self::$slim = $app;
         }
 
         return self::$slim;

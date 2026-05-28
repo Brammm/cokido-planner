@@ -26,7 +26,6 @@ no-fully-qualified-global-class-like = { enabled = true }
 no-fully-qualified-global-constant = { enabled = true }
 no-fully-qualified-global-function = { enabled = true }
 string-style = { enabled = true, style = "concatenation" }
-halstead = { effort-threshold = 7000 }
 
 [analyzer]
 plugins = ["psr-container"]
