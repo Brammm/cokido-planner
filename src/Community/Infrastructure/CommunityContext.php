@@ -6,6 +6,7 @@ namespace CokidoPlanner\Community\Infrastructure;
 
 use Brammm\Smart\Context;
 use Brammm\Smart\Psr7\DefaultResponses;
+use CokidoPlanner\Community\Domain\Community\CommunityRepository;
 use Crell\EnvMapper\EnvMapper;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
@@ -77,6 +78,7 @@ final class CommunityContext implements Context
                 new DefaultRepositoryManager($aggregateRootRegistry, $eventStore),
                 $engine,
             ),
+            CommunityRepository::class => static fn(RepositoryManager $repositoryManager) => new CommunityRepository($repositoryManager),
         ];
     }
 }
