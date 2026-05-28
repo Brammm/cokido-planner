@@ -16,7 +16,7 @@ final class Community extends BasicAggregateRoot
     #[Id]
     private CommunityId $id;
 
-    private string $name;
+    private Name $name;
 
     private Members $members;
 
@@ -25,7 +25,7 @@ final class Community extends BasicAggregateRoot
         return $this->id;
     }
 
-    public function name(): string
+    public function name(): Name
     {
         return $this->name;
     }
@@ -35,7 +35,7 @@ final class Community extends BasicAggregateRoot
         return $this->members;
     }
 
-    public static function found(CommunityId $id, string $name, MemberId $foundingMemberId): static
+    public static function found(CommunityId $id, Name $name, MemberId $foundingMemberId): static
     {
         $self = new static();
         $self->recordThat(new CommunityFounded($id, $name, $foundingMemberId));

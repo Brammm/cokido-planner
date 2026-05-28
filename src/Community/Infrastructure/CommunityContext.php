@@ -21,6 +21,8 @@ use Doctrine\DBAL\Tools\DsnParser;
 use Override;
 use Patchlevel\EventSourcing\Metadata\AggregateRoot\AggregateRootRegistry;
 use Patchlevel\EventSourcing\Metadata\AggregateRoot\AttributeAggregateRootRegistryFactory;
+use Patchlevel\EventSourcing\Metadata\Event\AttributeEventRegistryFactory;
+use Patchlevel\EventSourcing\Metadata\Event\EventRegistry;
 use Patchlevel\EventSourcing\Repository\DefaultRepositoryManager;
 use Patchlevel\EventSourcing\Repository\RepositoryManager;
 use Patchlevel\EventSourcing\Serializer\DefaultEventSerializer;
@@ -58,6 +60,9 @@ final class CommunityContext implements Context
                 static fn(ConnectionsEnv $env) => DriverManager::getConnection(new DsnParser()->parse($env->eventsDsn)),
             'connection.projections' =>
                 static fn(ConnectionsEnv $env) => DriverManager::getConnection(new DsnParser()->parse($env->projectionsDsn)),
+            EventRegistry::class => static fn() => new AttributeEventRegistryFactory()->create([
+                __DIR__ . '/../Domain',
+            ]),
             EventSerializer::class => DefaultEventSerializer::createFromPaths([
                 __DIR__ . '/../Domain',
             ]),

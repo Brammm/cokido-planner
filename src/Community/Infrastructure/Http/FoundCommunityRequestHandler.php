@@ -7,6 +7,7 @@ namespace CokidoPlanner\Community\Infrastructure\Http;
 use Brammm\Smart\Psr7\DefaultResponses;
 use Brammm\Tactishun\CommandBus;
 use CokidoPlanner\Community\Application\Community\FoundCommunity;
+use CokidoPlanner\Community\Infrastructure\EventSourcing\EventStoreCommunityWithNameExists;
 use CuyZ\Valinor\Mapper\MappingError;
 use CuyZ\Valinor\Mapper\Tree\Message\NodeMessage;
 use CuyZ\Valinor\Mapper\TreeMapper;
@@ -20,6 +21,7 @@ use function array_map;
 final readonly class FoundCommunityRequestHandler implements RequestHandlerInterface
 {
     public function __construct(
+        private EventStoreCommunityWithNameExists $communityWithNameExists,
         private TreeMapper $mapper,
         private CommandBus $commandBus,
     ) {}
@@ -34,6 +36,10 @@ final readonly class FoundCommunityRequestHandler implements RequestHandlerInter
                 static fn(NodeMessage $message) => $message->path() . ': ' . $message->toString(),
                 $error->messages()->toArray(),
             )], 400);
+        }
+        
+        if (($this->communityWithNameExists)($command->name)) {
+            return DefaultResponses::json(['errors' => ['name' => 'Community with this name already exists']], 400);
         }
 
         $this->commandBus->handle($command);
