@@ -6,8 +6,15 @@ namespace CokidoPlanner\Community\Infrastructure;
 
 use Brammm\Smart\Context;
 use Brammm\Smart\Psr7\DefaultResponses;
-use CokidoPlanner\Community\Domain\Community\CommunityRepository;
+use Brammm\Tactishun\CommandBus;
+use CokidoPlanner\Community\Infrastructure\Http\FoundCommunityRequestHandler;
 use Crell\EnvMapper\EnvMapper;
+use CuyZ\Valinor\Mapper\Configurator\ConvertKeysToCamelCase;
+use CuyZ\Valinor\Mapper\Configurator\RestrictKeysToSnakeCase;
+use CuyZ\Valinor\Mapper\Http\HttpRequest;
+use CuyZ\Valinor\Mapper\TreeMapper;
+use CuyZ\Valinor\MapperBuilder;
+use DI\Container;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Tools\DsnParser;
@@ -27,6 +34,7 @@ use Patchlevel\EventSourcing\Subscription\Store\DoctrineSubscriptionStore;
 use Patchlevel\EventSourcing\Subscription\Store\SubscriptionStore;
 use Patchlevel\EventSourcing\Subscription\Subscriber\MetadataSubscriberAccessorRepository;
 use Patchlevel\EventSourcing\Subscription\Subscriber\SubscriberAccessorRepository;
+use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 
 use function DI\factory;
@@ -38,6 +46,7 @@ final class CommunityContext implements Context
     public function routes(App $app): void
     {
         $app->get('/', static fn() => DefaultResponses::json(['message' => 'Hello World!']));
+        $app->post('/community.found', FoundCommunityRequestHandler::class);
     }
 
     #[Override]
@@ -78,7 +87,26 @@ final class CommunityContext implements Context
                 new DefaultRepositoryManager($aggregateRootRegistry, $eventStore),
                 $engine,
             ),
-            CommunityRepository::class => static fn(RepositoryManager $repositoryManager) => new CommunityRepository($repositoryManager),
+
+            CommandBus::class => static fn(Container $container) => new CommandBus($container),
+
+            TreeMapper::class => static fn() => new MapperBuilder()
+                ->configureWith(new RestrictKeysToSnakeCase(), new ConvertKeysToCamelCase())
+                ->registerConverter(self::convertServerRequestToNext(...))
+                ->allowScalarValueCasting()
+                ->allowSuperfluousKeys()
+                ->mapper(),
         ];
+    }
+
+    /**
+     * @template T
+     * @param pure-callable(HttpRequest): T $next
+     * @return T
+     * @pure
+     */
+    private static function convertServerRequestToNext(ServerRequestInterface $request, callable $next): mixed
+    {
+        return $next(HttpRequest::fromPsr($request));
     }
 }

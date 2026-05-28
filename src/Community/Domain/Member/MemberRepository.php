@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace CokidoPlanner\Community\Domain\Community;
+namespace CokidoPlanner\Community\Domain\Member;
 
 use Override;
 use Patchlevel\EventSourcing\Aggregate\AggregateRoot;
@@ -11,20 +11,20 @@ use Patchlevel\EventSourcing\Repository\Repository;
 use Patchlevel\EventSourcing\Repository\RepositoryManager;
 
 /**
- * @implements Repository<Community>
+ * @implements Repository<Member>
  */
-final class CommunityRepository implements Repository
+final class MemberRepository implements Repository
 {
-    /** @var Repository<Community> */
+    /** @var Repository<Member> */
     private Repository $repository;
 
     public function __construct(RepositoryManager $repositoryManager)
     {
-        $this->repository = $repositoryManager->get(Community::class);
+        $this->repository = $repositoryManager->get(Member::class);
     }
 
     #[Override]
-    public function load(AggregateRootId $id): Community
+    public function load(AggregateRootId $id): Member
     {
         return $this->repository->load($id);
     }

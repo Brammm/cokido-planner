@@ -20,6 +20,11 @@ final class Community extends BasicAggregateRoot
 
     private Members $members;
 
+    public function id(): CommunityId
+    {
+        return $this->id;
+    }
+
     public function name(): string
     {
         return $this->name;

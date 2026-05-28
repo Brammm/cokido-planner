@@ -21,6 +21,11 @@ final class Member extends BasicAggregateRoot
 
     private string $email;
 
+    public function id(): MemberId
+    {
+        return $this->id;
+    }
+
     public function firstName(): string
     {
         return $this->firstName;

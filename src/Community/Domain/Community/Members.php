@@ -11,11 +11,16 @@ final class Members
     /** @var array<string, MemberRole> */
     private array $members;
 
-    public static function create(MemberId $memberId): self
+    public static function create(MemberId $id): self
     {
         $self = new self();
-        $self->members = [$memberId->toString() => MemberRole::Admin];
+        $self->members = [$id->toString() => MemberRole::Admin];
 
         return $self;
+    }
+
+    public function role(MemberId $id): ?MemberRole
+    {
+        return $this->members[$id->toString()] ?? null;
     }
 }

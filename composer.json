@@ -16,8 +16,11 @@
     "require": {
         "php": "^8.5",
         "brammm/smart": "*@dev",
+        "brammm/tactishun": "^0.3.0",
         "crell/envmapper": "^1.1",
-        "patchlevel/event-sourcing": "^3.19"
+        "cuyz/valinor": "^2.4",
+        "patchlevel/event-sourcing": "^3.19",
+        "php-standard-library/str": "^6.2"
     },
     "repositories": [
         {
