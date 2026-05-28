@@ -11,8 +11,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $appEnv = new EnvMapper()->map(AppEnv::class);
 
-$app = new App($appEnv, [
-    new CommunityContext(),
-]);
+$app = new App($appEnv);
+$app->addcontext(new CommunityContext());
 
 $app->run();
