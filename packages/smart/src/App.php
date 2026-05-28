@@ -46,7 +46,11 @@ final readonly class App
 
         if (!$appEnv->debug) {
             $builder->enableDefinitionCache();
-            $builder->enableCompilation($appEnv->cacheDir);
+            try {
+                $builder->enableCompilation($appEnv->cacheDirFromProjectRoot());
+            } catch (\Throwable) {
+                // @mago-expect no-empty-catch-clause
+            }
         }
 
         $this->container = $builder->build();
