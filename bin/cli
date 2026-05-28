@@ -1,0 +1,59 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Brammm\Smart\AppEnv;
+use CokidoPlanner\Community\Infrastructure\CommunityContext;
+use Crell\EnvMapper\EnvMapper;
+use DI\ContainerBuilder;
+use Patchlevel\EventSourcing\Console\Command;
+use Patchlevel\EventSourcing\Console\DoctrineHelper;
+use Patchlevel\EventSourcing\Schema\ChainDoctrineSchemaConfigurator;
+use Patchlevel\EventSourcing\Schema\DoctrineSchemaDirector;
+use Patchlevel\EventSourcing\Store\Store;
+use Patchlevel\EventSourcing\Subscription\Engine\SubscriptionEngine;
+use Patchlevel\EventSourcing\Subscription\Store\SubscriptionStore;
+use Symfony\Component\Console\Application;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$appEnv = new EnvMapper()->map(AppEnv::class);
+
+$builder = new ContainerBuilder();
+$builder->addDefinitions([AppEnv::class => $appEnv]);
+$builder->addDefinitions(new CommunityContext()->dependencies());
+$container = $builder->build();
+
+$cli = new Application('Event-Sourcing CLI');
+$cli->setCatchExceptions(true);
+
+$doctrineHelper = new DoctrineHelper();
+
+$connection         = $container->get('connection.events');
+$eventStore         = $container->get(Store::class);
+$subscriptionStore  = $container->get(SubscriptionStore::class);
+$subscriptionEngine = $container->get(SubscriptionEngine::class);
+$schemaDirector     = new DoctrineSchemaDirector(
+        $connection,
+        new ChainDoctrineSchemaConfigurator([
+                $eventStore,
+                $subscriptionStore,
+        ]),
+);
+
+$cli->addCommands([
+        new Command\SubscriptionBootCommand($subscriptionEngine),
+        new Command\SubscriptionPauseCommand($subscriptionEngine),
+        new Command\SubscriptionRunCommand($subscriptionEngine, $eventStore),
+        new Command\SubscriptionTeardownCommand($subscriptionEngine),
+        new Command\SubscriptionRemoveCommand($subscriptionEngine),
+        new Command\SubscriptionReactivateCommand($subscriptionEngine),
+        new Command\SubscriptionSetupCommand($subscriptionEngine),
+        new Command\SubscriptionStatusCommand($subscriptionEngine),
+        new Command\SchemaCreateCommand($schemaDirector),
+        new Command\SchemaDropCommand($schemaDirector),
+        new Command\SchemaUpdateCommand($schemaDirector),
+]);
+
+$cli->run();

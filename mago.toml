@@ -5,7 +5,7 @@ php-version = "8.5.0"
 
 [source]
 workspace = "."
-paths = ["public", "src"]
+paths = ["bin", "public", "src"]
 includes = ["packages", "vendor"]
 excludes = ["vendor/nikic/fast-route/test/**", "vendor/brammm/smart/**", "packages/*/vendor/**"]
 
@@ -14,6 +14,7 @@ literal-separator = true
 
 [formatter]
 preset = "default"
+empty-line-after-property = true
 
 [linter]
 integrations = []
@@ -26,7 +27,6 @@ no-fully-qualified-global-class-like = { enabled = true }
 no-fully-qualified-global-constant = { enabled = true }
 no-fully-qualified-global-function = { enabled = true }
 string-style = { enabled = true, style = "concatenation" }
-halstead = { effort-threshold = 7000 }
 
 [analyzer]
 plugins = []

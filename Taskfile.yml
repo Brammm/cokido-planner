@@ -5,9 +5,17 @@ silent: true
 tasks:
     static-analysis:
         cmd: mago analyze
+    
     lint:
         cmd: mago lint
+    
     lint:fix:
         cmds: 
         - mago lint --fix --unsafe
         - mago format
+
+    schema:rebuild:
+        prompt: "Are you sure? This will destroy all previous events."
+        cmds:
+            - docker compose exec php bin/cli event-sourcing:schema:drop --force
+            - docker compose exec php bin/cli event-sourcing:schema:create
