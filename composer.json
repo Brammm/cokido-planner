@@ -16,11 +16,7 @@
     "require": {
         "php": "^8.5",
         "brammm/smart": "*@dev",
-        "crell/envmapper": "^1.1",
-        "lcobucci/clock": "^3.6"
-    },
-    "require-dev": {
-        "eventsauce/test-utilities": "^3.6"
+        "crell/envmapper": "^1.1"
     },
     "repositories": [
         {
