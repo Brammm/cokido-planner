@@ -8,4 +8,6 @@ tasks:
     lint:
         cmd: mago lint
     lint:fix:
-        cmd: mago lint --fix --unsafe --format-after-fix
+        cmds: 
+        - mago lint --fix --unsafe
+        - mago format
