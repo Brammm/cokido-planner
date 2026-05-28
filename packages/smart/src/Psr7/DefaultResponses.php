@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace Brammm\Smart\Psr7;
 
+use InvalidArgumentException;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseInterface;
+use RuntimeException;
+
+use function json_encode;
+
+use const JSON_THROW_ON_ERROR;
 
 final class DefaultResponses
 {
@@ -25,8 +31,8 @@ final class DefaultResponses
 
         try {
             $response = $response->withHeader('Content-Type', 'application/json');
-        } catch (\InvalidArgumentException $e) {
-            throw new \RuntimeException('Unable to set Content-Type header to application/json', 0, $e);
+        } catch (InvalidArgumentException $e) {
+            throw new RuntimeException('Unable to set Content-Type header to application/json', 0, $e);
         }
 
         $response->getBody()->write(json_encode($data, JSON_THROW_ON_ERROR));

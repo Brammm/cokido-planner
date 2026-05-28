@@ -9,6 +9,9 @@ use DI\Bridge\Slim\CallableResolver;
 use DI\Bridge\Slim\ControllerInvoker;
 use DI\Container;
 use DI\ContainerBuilder;
+use DI\DependencyException;
+use DI\NotFoundException;
+use InvalidArgumentException;
 use Invoker\CallableResolver as InvokerResolver;
 use Invoker\Invoker;
 use Invoker\ParameterResolver\AssociativeArrayResolver;
@@ -20,6 +23,7 @@ use Nyholm\Psr7Server\ServerRequestCreator;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use RuntimeException;
 use Slim\App as Slim;
 use Slim\Factory\AppFactory;
 use Slim\Interfaces\CallableResolverInterface;
@@ -27,39 +31,22 @@ use Slim\Interfaces\RouteCollectorInterface;
 use Slim\ResponseEmitter;
 use Slim\Routing\RouteCollector;
 
-final readonly class App
+use function assert;
+
+final class App
 {
-    private Slim $slim;
+    /** @var list<Context> */
+    private array $contexts;
 
-    private Container $container;
+    private static ?Slim $slim = null;
 
-    /**
-     * @param list<Context> $contexts
-     */
-    public function __construct(AppEnv $appEnv, array $contexts = [])
+    public function __construct(
+        private AppEnv $appEnv,
+    ) {}
+
+    public function addContext(Context $context): void
     {
-        $builder = new ContainerBuilder();
-        $builder->addDefinitions($this->appDependencies($appEnv));
-        foreach ($contexts as $context) {
-            $builder->addDefinitions($context->dependencies());
-        }
-
-        if (!$appEnv->debug) {
-            $builder->enableDefinitionCache();
-            try {
-                $builder->enableCompilation($appEnv->cacheDirFromProjectRoot());
-            } catch (\Throwable) {
-                // @mago-expect no-empty-catch-clause
-            }
-        }
-
-        $this->container = $builder->build();
-
-        $this->slim = AppFactory::createFromContainer($this->container);
-
-        foreach ($contexts as $context) {
-            $context->routes($this->slim);
-        }
+        $this->contexts[] = $context;
     }
 
     /**
@@ -96,19 +83,55 @@ final readonly class App
         ];
     }
 
-    public function handle(ServerRequestInterface $request): ResponseInterface
+    /**
+     * @throws RuntimeException
+     */
+    private function getSlim(): Slim
     {
-        return $this->slim->handle($request);
+        if (self::$slim === null) {
+            $builder = new ContainerBuilder();
+            $builder->addDefinitions($this->appDependencies($this->appEnv));
+            foreach ($this->contexts as $context) {
+                $builder->addDefinitions($context->dependencies());
+            }
+
+            if (!$this->appEnv->debug) {
+                $builder->enableDefinitionCache();
+                $builder->enableCompilation($this->appEnv->cacheDirFromProjectRoot());
+            }
+
+            $container = $builder->build();
+
+            self::$slim = AppFactory::createFromContainer($container);
+
+            foreach ($this->contexts as $context) {
+                $context->routes(self::$slim);
+            }
+        }
+
+        return self::$slim;
     }
 
     /**
-     * @throws \DI\DependencyException
-     * @throws \DI\NotFoundException
-     * @throws \InvalidArgumentException
+     * @throws RuntimeException
+     */
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        return $this->getSlim()->handle($request);
+    }
+
+    /**
+     * @throws DependencyException
+     * @throws NotFoundException
+     * @throws InvalidArgumentException
+     * @throws RuntimeException
      */
     public function run(): void
     {
-        $response = $this->handle($this->container->get(ServerRequestCreator::class)->fromGlobals());
+        $container = $this->getSlim()->getContainer();
+        assert($container instanceof Container, description: 'Container is not an instance of ' . Container::class);
+
+        $response = $this->handle($container->get(ServerRequestCreator::class)->fromGlobals());
 
         $emitter = new ResponseEmitter();
         $emitter->emit($response);
