@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace CokidoPlanner\Community\Infrastructure\EventSourcing;
 
-use CokidoPlanner\Community\Domain\Community\CommunityFounded;
+use CokidoPlanner\Community\Domain\Community\CommunityWithNameExists;
+use CokidoPlanner\Community\Domain\Community\CommunityStarted;
 use CokidoPlanner\Community\Domain\Community\Name;
 use Patchlevel\EventSourcing\Message\Message;
 use Patchlevel\EventSourcing\Message\Reducer;
@@ -26,7 +27,7 @@ final readonly class EventStoreCommunityWithNameExists implements CommunityWithN
         $stream = $this->store->load(
             new Criteria(
                 new EventsCriterion(
-                    [$this->eventRegistry->eventName(CommunityFounded::class)]
+                    [$this->eventRegistry->eventName(CommunityStarted::class)]
                 ),
             )
         );
@@ -35,7 +36,7 @@ final readonly class EventStoreCommunityWithNameExists implements CommunityWithN
         $reducer = new Reducer();
         $reducer->initState(['has' => false]);
         $reducer->when(
-            CommunityFounded::class,
+            CommunityStarted::class,
             static function (Message $message, array $prevState) use ($name): array {
                 $existingName = $message->event()->name;
                 if ($existingName->equals($name)) {

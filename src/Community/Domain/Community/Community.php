@@ -35,19 +35,23 @@ final class Community extends BasicAggregateRoot
         return $this->members;
     }
 
-    public static function found(CommunityId $id, Name $name, MemberId $foundingMemberId): static
+    public static function start(CommunityWithNameExists $communityWithNameExists, CommunityId $id, Name $name, MemberId $startedBy): static
     {
+        if ($communityWithNameExists($name)) {
+            throw new CommunityWithNameAlreadyExists($name);
+        }
+        
         $self = new static();
-        $self->recordThat(new CommunityFounded($id, $name, $foundingMemberId));
+        $self->recordThat(new CommunityStarted($id, $name, $startedBy));
 
         return $self;
     }
 
     #[Apply]
-    public function applyCommunityFounded(CommunityFounded $event): void
+    public function applyCommunityStarted(CommunityStarted $event): void
     {
         $this->id = $event->id;
         $this->name = $event->name;
-        $this->members = Members::create($event->foundingMember);
+        $this->members = Members::create($event->startedBy);
     }
 }

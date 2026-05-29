@@ -7,17 +7,19 @@ namespace CokidoPlanner\Community\Application\Community;
 use Brammm\Tactishun\CommandHandler\CommandHandler;
 use CokidoPlanner\Community\Domain\Community\Community;
 use CokidoPlanner\Community\Domain\Community\CommunityRepository;
+use CokidoPlanner\Community\Domain\Community\CommunityWithNameExists;
+use CokidoPlanner\Community\Domain\Member\MemberRepository;
 use CokidoPlanner\Community\Domain\Member\Member;
 use CokidoPlanner\Community\Domain\Member\MemberId;
-use CokidoPlanner\Community\Domain\Member\MemberRepository;
 use Override;
 
-/** @implements CommandHandler<FoundCommunity> */
-final readonly class FoundCommunityHandler implements CommandHandler
+/** @implements CommandHandler<StartCommunity> */
+final readonly class StartCommunityHandler implements CommandHandler
 {
     public function __construct(
         private CommunityRepository $communityRepository,
         private MemberRepository $memberRepository,
+        private CommunityWithNameExists $communityWithNameExists,
     ) {}
 
     #[Override]
@@ -32,7 +34,7 @@ final readonly class FoundCommunityHandler implements CommandHandler
         );
         $this->memberRepository->save($member);
 
-        $community = Community::found($command->communityId, $command->name, $memberId);
+        $community = Community::start($this->communityWithNameExists, $command->communityId, $command->name, $memberId);
 
         $this->communityRepository->save($community);
     }

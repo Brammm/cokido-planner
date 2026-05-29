@@ -8,13 +8,13 @@ use CokidoPlanner\Community\Domain\Member\MemberId;
 use CokidoPlanner\Community\Infrastructure\EventSourcing\NameNormalizer;
 use Patchlevel\EventSourcing\Attribute\Event;
 
-#[Event('community.founded')]
-final readonly class CommunityFounded
+#[Event('community.started')]
+final readonly class CommunityStarted
 {
     public function __construct(
         public CommunityId $id,
         #[NameNormalizer]
         public Name $name,
-        public MemberId $foundingMember,
+        public MemberId $startedBy,
     ) {}
 }

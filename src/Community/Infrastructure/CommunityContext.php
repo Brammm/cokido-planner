@@ -7,7 +7,13 @@ namespace CokidoPlanner\Community\Infrastructure;
 use Brammm\Smart\Context;
 use Brammm\Smart\Psr7\DefaultResponses;
 use Brammm\Tactishun\CommandBus;
-use CokidoPlanner\Community\Infrastructure\Http\FoundCommunityRequestHandler;
+use CokidoPlanner\Community\Domain\Community\CommunityRepository;
+use CokidoPlanner\Community\Domain\Community\CommunityWithNameExists;
+use CokidoPlanner\Community\Domain\Member\MemberRepository;
+use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingCommunityRepository;
+use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingMemberRepository;
+use CokidoPlanner\Community\Infrastructure\EventSourcing\EventStoreCommunityWithNameExists;
+use CokidoPlanner\Community\Infrastructure\Http\StartCommunityRequestHandler;
 use Crell\EnvMapper\EnvMapper;
 use CuyZ\Valinor\Mapper\Configurator\ConvertKeysToCamelCase;
 use CuyZ\Valinor\Mapper\Configurator\RestrictKeysToSnakeCase;
@@ -48,7 +54,7 @@ final class CommunityContext implements Context
     public function routes(App $app): void
     {
         $app->get('/', static fn() => DefaultResponses::json(['message' => 'Hello World!']));
-        $app->post('/community.found', FoundCommunityRequestHandler::class);
+        $app->post('/community.start', StartCommunityRequestHandler::class);
     }
 
     #[Override]
@@ -101,6 +107,10 @@ final class CommunityContext implements Context
                 ->allowScalarValueCasting()
                 ->allowSuperfluousKeys()
                 ->mapper(),
+
+            CommunityWithNameExists::class => get(EventStoreCommunityWithNameExists::class),
+            CommunityRepository::class => get(EventSourcingCommunityRepository::class),
+            MemberRepository::class => get(EventSourcingMemberRepository::class),
         ];
     }
 

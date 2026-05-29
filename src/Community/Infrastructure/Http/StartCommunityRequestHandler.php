@@ -6,8 +6,8 @@ namespace CokidoPlanner\Community\Infrastructure\Http;
 
 use Brammm\Smart\Psr7\DefaultResponses;
 use Brammm\Tactishun\CommandBus;
-use CokidoPlanner\Community\Application\Community\FoundCommunity;
-use CokidoPlanner\Community\Infrastructure\EventSourcing\EventStoreCommunityWithNameExists;
+use CokidoPlanner\Community\Application\Community\StartCommunity;
+use CokidoPlanner\Community\Domain\Community\CommunityWithNameAlreadyExists;
 use CuyZ\Valinor\Mapper\MappingError;
 use CuyZ\Valinor\Mapper\Tree\Message\NodeMessage;
 use CuyZ\Valinor\Mapper\TreeMapper;
@@ -18,10 +18,9 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 use function array_map;
 
-final readonly class FoundCommunityRequestHandler implements RequestHandlerInterface
+final readonly class StartCommunityRequestHandler implements RequestHandlerInterface
 {
     public function __construct(
-        private EventStoreCommunityWithNameExists $communityWithNameExists,
         private TreeMapper $mapper,
         private CommandBus $commandBus,
     ) {}
@@ -30,19 +29,19 @@ final readonly class FoundCommunityRequestHandler implements RequestHandlerInter
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         try {
-            $command = $this->mapper->map(FoundCommunity::class, $request);
+            $command = $this->mapper->map(StartCommunity::class, $request);
         } catch (MappingError $error) {
             return DefaultResponses::json(['errors' => array_map(
                 static fn(NodeMessage $message) => $message->path() . ': ' . $message->toString(),
                 $error->messages()->toArray(),
             )], 400);
         }
-        
-        if (($this->communityWithNameExists)($command->name)) {
-            return DefaultResponses::json(['errors' => ['name' => 'Community with this name already exists']], 400);
-        }
 
-        $this->commandBus->handle($command);
+        try {
+            $this->commandBus->handle($command);
+        } catch (CommunityWithNameAlreadyExists $e) {
+            return DefaultResponses::json(['errors' => [$e->getMessage()]], 400);
+        }
 
         return DefaultResponses::json(['id' => $command->communityId->toString()]);
     }

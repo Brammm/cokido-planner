@@ -8,8 +8,8 @@ use Brammm\Tactishun\HandledBy;
 use CokidoPlanner\Community\Domain\Community\CommunityId;
 use CokidoPlanner\Community\Domain\Community\Name;
 
-#[HandledBy(FoundCommunityHandler::class)]
-final readonly class FoundCommunity
+#[HandledBy(StartCommunityHandler::class)]
+final readonly class StartCommunity
 {
     public CommunityId $communityId;
 
