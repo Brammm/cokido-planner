@@ -14,6 +14,7 @@ use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingCommunityRep
 use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingMemberRepository;
 use CokidoPlanner\Community\Infrastructure\EventSourcing\EventStoreCommunityWithNameExists;
 use CokidoPlanner\Community\Infrastructure\Http\StartCommunityRequestHandler;
+use CokidoPlanner\Community\Infrastructure\Projection\CommunityProjector;
 use Crell\EnvMapper\EnvMapper;
 use CuyZ\Valinor\Mapper\Configurator\ConvertKeysToCamelCase;
 use CuyZ\Valinor\Mapper\Configurator\RestrictKeysToSnakeCase;
@@ -25,6 +26,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Tools\DsnParser;
 use Override;
+use Patchlevel\EventSourcing\Clock\SystemClock;
 use Patchlevel\EventSourcing\Metadata\AggregateRoot\AggregateRootRegistry;
 use Patchlevel\EventSourcing\Metadata\AggregateRoot\AttributeAggregateRootRegistryFactory;
 use Patchlevel\EventSourcing\Metadata\Event\AttributeEventRegistryFactory;
@@ -36,12 +38,14 @@ use Patchlevel\EventSourcing\Serializer\EventSerializer;
 use Patchlevel\EventSourcing\Store\DoctrineDbalStore;
 use Patchlevel\EventSourcing\Store\Store;
 use Patchlevel\EventSourcing\Subscription\Engine\DefaultSubscriptionEngine;
+use Patchlevel\EventSourcing\Subscription\Engine\GapResolverStoreMessageLoader;
+use Patchlevel\EventSourcing\Subscription\Engine\MessageLoader;
 use Patchlevel\EventSourcing\Subscription\Engine\SubscriptionEngine;
-use Patchlevel\EventSourcing\Subscription\Repository\RunSubscriptionEngineRepositoryManager;
 use Patchlevel\EventSourcing\Subscription\Store\DoctrineSubscriptionStore;
 use Patchlevel\EventSourcing\Subscription\Store\SubscriptionStore;
 use Patchlevel\EventSourcing\Subscription\Subscriber\MetadataSubscriberAccessorRepository;
 use Patchlevel\EventSourcing\Subscription\Subscriber\SubscriberAccessorRepository;
+use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 
@@ -66,6 +70,10 @@ final class CommunityContext implements Context
                 static fn(ConnectionsEnv $env) => DriverManager::getConnection(new DsnParser()->parse($env->eventsDsn)),
             'connection.projections' =>
                 static fn(ConnectionsEnv $env) => DriverManager::getConnection(new DsnParser()->parse($env->projectionsDsn)),
+            'subscribers' => [
+                get(CommunityProjector::class)
+            ],
+            CommunityProjector::class => factory(static fn(Connection $connection) => new CommunityProjector($connection))->parameter('connection', get('connection.projections')),
             EventRegistry::class => static fn() => new AttributeEventRegistryFactory()->create([
                 __DIR__ . '/../Domain',
             ]),
@@ -80,23 +88,26 @@ final class CommunityContext implements Context
                 EventSerializer $serializer,
             ) => new DoctrineDbalStore($connection, $serializer))
                 ->parameter('connection', get('connection.events')),
-            SubscriberAccessorRepository::class => static fn() => new MetadataSubscriberAccessorRepository([]),
+            SubscriberAccessorRepository::class => factory(static fn(array $subscribers) => new MetadataSubscriberAccessorRepository($subscribers))->parameter('subscribers', get('subscribers')),
             SubscriptionStore::class => factory(
                 static fn(Connection $connection) => new DoctrineSubscriptionStore($connection),
             )
                 ->parameter('connection', get('connection.events')),
             SubscriptionEngine::class => static fn(
-                Store $eventStore,
+                MessageLoader $messageLoader,
                 SubscriptionStore $subscriptionStore,
                 SubscriberAccessorRepository $subscriberAccessorRepository,
-            ) => new DefaultSubscriptionEngine($eventStore, $subscriptionStore, $subscriberAccessorRepository),
+            ) => new DefaultSubscriptionEngine($messageLoader, $subscriptionStore, $subscriberAccessorRepository),
             RepositoryManager::class => static fn(
                 AggregateRootRegistry $aggregateRootRegistry,
                 Store $eventStore,
-                SubscriptionEngine $engine,
-            ) => new RunSubscriptionEngineRepositoryManager(
-                new DefaultRepositoryManager($aggregateRootRegistry, $eventStore),
-                $engine,
+            ) => new DefaultRepositoryManager($aggregateRootRegistry, $eventStore),
+            ClockInterface::class => static fn() => new SystemClock(),
+            MessageLoader::class => static fn(Store $store, ClockInterface $clock) => new GapResolverStoreMessageLoader(
+                $store,
+                $clock,
+                [0, 5, 50, 500], // default: retries in milliseconds (0 means immediate)
+                new \DateInterval('PT5M'), // default: detection window when to retry (5 minutes)
             ),
 
             CommandBus::class => static fn(Container $container) => new CommandBus($container),
