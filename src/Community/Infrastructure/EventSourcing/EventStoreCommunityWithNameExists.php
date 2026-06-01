@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CokidoPlanner\Community\Infrastructure\EventSourcing;
 
-use CokidoPlanner\Community\Domain\Community\CommunityWithNameExists;
 use CokidoPlanner\Community\Domain\Community\CommunityStarted;
+use CokidoPlanner\Community\Domain\Community\CommunityWithNameExists;
 use CokidoPlanner\Community\Domain\Community\Name;
 use Patchlevel\EventSourcing\Message\Message;
 use Patchlevel\EventSourcing\Message\Reducer;
@@ -19,33 +19,25 @@ final readonly class EventStoreCommunityWithNameExists implements CommunityWithN
     public function __construct(
         private Store $store,
         private EventRegistry $eventRegistry,
-    ) {
-    }
+    ) {}
 
     public function __invoke(Name $name): bool
     {
-        $stream = $this->store->load(
-            new Criteria(
-                new EventsCriterion(
-                    [$this->eventRegistry->eventName(CommunityStarted::class)]
-                ),
-            )
-        );
+        $stream = $this->store->load(new Criteria(new EventsCriterion([$this->eventRegistry->eventName(CommunityStarted::class)])));
 
         /** @var Reducer<array{has: bool}> $reducer */
         $reducer = new Reducer();
         $reducer->initState(['has' => false]);
-        $reducer->when(
-            CommunityStarted::class,
-            static function (Message $message, array $prevState) use ($name): array {
-                $existingName = $message->event()->name;
-                if ($existingName->equals($name)) {
-                    return ['has' => true];
-                }
+        $reducer->when(CommunityStarted::class, static function (Message $message, array $prevState) use (
+            $name,
+        ): array {
+            $existingName = $message->event()->name;
+            if ($existingName->equals($name)) {
+                return ['has' => true];
+            }
 
-                return $prevState;
-            },
-        );
+            return $prevState;
+        });
 
         return $reducer->reduce($stream)['has'];
     }

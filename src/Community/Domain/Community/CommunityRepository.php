@@ -9,6 +9,4 @@ use Patchlevel\EventSourcing\Repository\Repository;
 /**
  * @extends Repository<Community>
  */
-interface CommunityRepository extends Repository
-{
-}
+interface CommunityRepository extends Repository {}

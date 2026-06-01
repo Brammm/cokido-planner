@@ -18,8 +18,7 @@ final class CommunityProjector
 
     public function __construct(
         private readonly Connection $connection,
-    ) {
-    }
+    ) {}
 
     #[Subscribe(CommunityStarted::class)]
     public function onCommunityStarted(CommunityStarted $communityStarted): void
@@ -35,13 +34,13 @@ final class CommunityProjector
     public function setup(): void
     {
         $this->connection->executeStatement(sprintf(<<<'SQL'
-            CREATE TABLE IF NOT EXISTS %s (
-                id uuid, 
-                name varchar(255),
-                slug varchar(255),
-                PRIMARY KEY(id)
-            )
-        SQL, self::TABLE ));
+                CREATE TABLE IF NOT EXISTS %s (
+                    id uuid, 
+                    name varchar(255),
+                    slug varchar(255),
+                    PRIMARY KEY(id)
+                )
+            SQL, self::TABLE));
     }
 
     #[Teardown]

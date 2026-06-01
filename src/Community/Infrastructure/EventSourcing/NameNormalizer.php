@@ -17,7 +17,7 @@ final class NameNormalizer implements Normalizer
         if (!$value instanceof Name) {
             throw InvalidArgument::withWrongType(Name::class, $value);
         }
-        
+
         return $value->toString();
     }
 
@@ -26,7 +26,7 @@ final class NameNormalizer implements Normalizer
         if (!is_string($value)) {
             throw InvalidArgument::withWrongType('string', $value);
         }
-        
+
         return new Name($value);
     }
 }
