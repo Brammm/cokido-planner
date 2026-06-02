@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace CokidoPlanner\Community\Infrastructure\Projection;
 
-use CokidoPlanner\Community\Domain\Community\CommunityStarted;
+use CokidoPlanner\Community\Domain\Community\CommunityStartedByNewMember;
 use Doctrine\DBAL\Connection;
 use Patchlevel\EventSourcing\Attribute\Projector;
 use Patchlevel\EventSourcing\Attribute\Setup;
 use Patchlevel\EventSourcing\Attribute\Subscribe;
 use Patchlevel\EventSourcing\Attribute\Teardown;
+
+use function sprintf;
 
 #[Projector(self::TABLE)]
 final class CommunityProjector
@@ -20,8 +22,8 @@ final class CommunityProjector
         private readonly Connection $connection,
     ) {}
 
-    #[Subscribe(CommunityStarted::class)]
-    public function onCommunityStarted(CommunityStarted $communityStarted): void
+    #[Subscribe(CommunityStartedByNewMember::class)]
+    public function onCommunityStarted(CommunityStartedByNewMember $communityStarted): void
     {
         $this->connection->insert(self::TABLE, [
             'id' => $communityStarted->id->toString(),

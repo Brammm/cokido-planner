@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace CokidoPlanner\Community\Domain\Member;
 
+use CokidoPlanner\Community\Application\Member\RegisterMember;
 use Patchlevel\EventSourcing\Aggregate\BasicAggregateRoot;
 use Patchlevel\EventSourcing\Attribute\Aggregate;
 use Patchlevel\EventSourcing\Attribute\Apply;
+use Patchlevel\EventSourcing\Attribute\Handle;
 use Patchlevel\EventSourcing\Attribute\Id;
 
 #[Aggregate('member')]
@@ -41,10 +43,20 @@ final class Member extends BasicAggregateRoot
         return $this->email;
     }
 
-    public static function register(MemberId $id, string $firstName, string $lastName, string $email): static
+    #[Handle]
+    public static function register(RegisterMember $command): static
     {
         $self = new static();
-        $self->recordThat(new MemberRegistered($id, $firstName, $lastName, $email));
+        $self->recordThat(
+            new MemberRegistered(
+                $command->memberId,
+                $command->firstName,
+                $command->lastName,
+                $command->email,
+                $command->communityId,
+                $command->memberRole,
+            ),
+        );
 
         return $self;
     }

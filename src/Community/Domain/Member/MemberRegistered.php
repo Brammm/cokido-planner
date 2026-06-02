@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace CokidoPlanner\Community\Domain\Member;
 
 use CokidoPlanner\Community\Domain\Community\CommunityId;
-use CokidoPlanner\Community\Domain\Community\Name;
+use CokidoPlanner\Community\Domain\Community\MemberRole;
 use Patchlevel\EventSourcing\Attribute\Event;
 
 #[Event('member.registered')]
-final class NewMemberStartedCommunity
+final class MemberRegistered
 {
     public function __construct(
         public MemberId $id,
@@ -17,6 +17,6 @@ final class NewMemberStartedCommunity
         public string $lastName,
         public string $email,
         public CommunityId $communityId,
-        public Name $communityName,
+        public MemberRole $role,
     ) {}
 }

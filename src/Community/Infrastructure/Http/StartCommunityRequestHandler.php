@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace CokidoPlanner\Community\Infrastructure\Http;
 
 use Brammm\Smart\Psr7\DefaultResponses;
-use Brammm\Tactishun\CommandBus;
-use CokidoPlanner\Community\Application\Community\StartCommunity;
+use CokidoPlanner\Community\Application\Community\StartCommunityAsNewMember;
 use CokidoPlanner\Community\Domain\Community\CommunityWithNameAlreadyExists;
 use CuyZ\Valinor\Mapper\MappingError;
 use CuyZ\Valinor\Mapper\Tree\Message\NodeMessage;
 use CuyZ\Valinor\Mapper\TreeMapper;
 use Override;
+use Patchlevel\EventSourcing\CommandBus\CommandBus;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -29,7 +29,7 @@ final readonly class StartCommunityRequestHandler implements RequestHandlerInter
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         try {
-            $command = $this->mapper->map(StartCommunity::class, $request);
+            $command = $this->mapper->map(StartCommunityAsNewMember::class, $request);
         } catch (MappingError $error) {
             return DefaultResponses::json(['errors' => array_map(
                 static fn(NodeMessage $message) => $message->path() . ': ' . $message->toString(),
@@ -38,7 +38,7 @@ final readonly class StartCommunityRequestHandler implements RequestHandlerInter
         }
 
         try {
-            $this->commandBus->handle($command);
+            $this->commandBus->dispatch($command);
         } catch (CommunityWithNameAlreadyExists $e) {
             return DefaultResponses::json(['errors' => [$e->getMessage()]], 400);
         }

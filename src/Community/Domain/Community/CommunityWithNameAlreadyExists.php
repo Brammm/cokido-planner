@@ -6,6 +6,8 @@ namespace CokidoPlanner\Community\Domain\Community;
 
 use RuntimeException;
 
+use function sprintf;
+
 final class CommunityWithNameAlreadyExists extends RuntimeException
 {
     public function __construct(Name $name)

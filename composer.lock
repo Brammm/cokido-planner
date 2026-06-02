@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "977bd3e7ce102649b904618fc6f23b80",
+    "content-hash": "131bc2bdab8440f47e569d0eed657f6b",
     "packages": [
         {
             "name": "brammm/smart",
@@ -37,56 +37,6 @@
             "transport-options": {
                 "relative": true
             }
-        },
-        {
-            "name": "brammm/tactishun",
-            "version": "v0.3.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/Brammm/tactishun.git",
-                "reference": "de3cf6aabb91f2b7c980d93468fae47ca63b021e"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/Brammm/tactishun/zipball/de3cf6aabb91f2b7c980d93468fae47ca63b021e",
-                "reference": "de3cf6aabb91f2b7c980d93468fae47ca63b021e",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^8.3",
-                "psr/container": "^2.0"
-            },
-            "require-dev": {
-                "doctrine/coding-standard": "^13.0",
-                "phpstan/phpstan": "^2.1",
-                "phpstan/phpstan-strict-rules": "^2.0",
-                "phpunit/phpunit": "^12.2"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Brammm\\Tactishun\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "LGPL-3.0-or-later"
-            ],
-            "authors": [
-                {
-                    "name": "Bram Van der Sype",
-                    "email": "bram.vandersype@gmail.com"
-                }
-            ],
-            "description": "A simple PHP 8 command bus implementation",
-            "keywords": [
-                "command bus"
-            ],
-            "support": {
-                "issues": "https://github.com/Brammm/tactishun/issues",
-                "source": "https://github.com/Brammm/tactishun/tree/v0.3.0"
-            },
-            "time": "2025-08-12T18:57:04+00:00"
         },
         {
             "name": "brick/math",

@@ -6,14 +6,15 @@ namespace CokidoPlanner\Community\Infrastructure;
 
 use Brammm\Smart\Context;
 use Brammm\Smart\Psr7\DefaultResponses;
-use Brammm\Tactishun\CommandBus;
+use CokidoPlanner\Community\Application\Community\JoinCommunityProcessor;
+use CokidoPlanner\Community\Application\Member\RegisterMissingMemberProcessor;
 use CokidoPlanner\Community\Domain\Community\CommunityRepository;
 use CokidoPlanner\Community\Domain\Community\CommunityWithNameExists;
 use CokidoPlanner\Community\Domain\Member\MemberRepository;
-use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingCommunityRepository;
-use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingMemberRepository;
 use CokidoPlanner\Community\Infrastructure\EventSourcing\EventStoreCommunityWithNameExists;
 use CokidoPlanner\Community\Infrastructure\Http\StartCommunityRequestHandler;
+use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingCommunityRepository;
+use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingMemberRepository;
 use CokidoPlanner\Community\Infrastructure\Projection\CommunityProjector;
 use Crell\EnvMapper\EnvMapper;
 use CuyZ\Valinor\Mapper\Configurator\ConvertKeysToCamelCase;
@@ -21,12 +22,16 @@ use CuyZ\Valinor\Mapper\Configurator\RestrictKeysToSnakeCase;
 use CuyZ\Valinor\Mapper\Http\HttpRequest;
 use CuyZ\Valinor\Mapper\TreeMapper;
 use CuyZ\Valinor\MapperBuilder;
+use DateInterval;
 use DI\Container;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Tools\DsnParser;
 use Override;
 use Patchlevel\EventSourcing\Clock\SystemClock;
+use Patchlevel\EventSourcing\CommandBus\AggregateHandlerProvider;
+use Patchlevel\EventSourcing\CommandBus\CommandBus;
+use Patchlevel\EventSourcing\CommandBus\SyncCommandBus;
 use Patchlevel\EventSourcing\Metadata\AggregateRoot\AggregateRootRegistry;
 use Patchlevel\EventSourcing\Metadata\AggregateRoot\AttributeAggregateRootRegistryFactory;
 use Patchlevel\EventSourcing\Metadata\Event\AttributeEventRegistryFactory;
@@ -71,9 +76,14 @@ final class CommunityContext implements Context
             'connection.projections' =>
                 static fn(ConnectionsEnv $env) => DriverManager::getConnection(new DsnParser()->parse($env->projectionsDsn)),
             'subscribers' => [
-                get(CommunityProjector::class)
+                get(CommunityProjector::class),
+                get(JoinCommunityProcessor::class),
+                get(RegisterMissingMemberProcessor::class),
             ],
-            CommunityProjector::class => factory(static fn(Connection $connection) => new CommunityProjector($connection))->parameter('connection', get('connection.projections')),
+            CommunityProjector::class => factory(
+                static fn(Connection $connection) => new CommunityProjector($connection),
+            )
+                ->parameter('connection', get('connection.projections')),
             EventRegistry::class => static fn() => new AttributeEventRegistryFactory()->create([
                 __DIR__ . '/../Domain',
             ]),
@@ -88,7 +98,11 @@ final class CommunityContext implements Context
                 EventSerializer $serializer,
             ) => new DoctrineDbalStore($connection, $serializer))
                 ->parameter('connection', get('connection.events')),
-            SubscriberAccessorRepository::class => factory(static fn(array $subscribers) => new MetadataSubscriberAccessorRepository($subscribers))->parameter('subscribers', get('subscribers')),
+            SubscriberAccessorRepository::class => factory(
+                /** @param list<object> $subscribers */
+                static fn(array $subscribers) => new MetadataSubscriberAccessorRepository($subscribers),
+            )
+                ->parameter('subscribers', get('subscribers')),
             SubscriptionStore::class => factory(
                 static fn(Connection $connection) => new DoctrineSubscriptionStore($connection),
             )
@@ -107,10 +121,18 @@ final class CommunityContext implements Context
                 $store,
                 $clock,
                 [0, 5, 50, 500], // default: retries in milliseconds (0 means immediate)
-                new \DateInterval('PT5M'), // default: detection window when to retry (5 minutes)
+                new DateInterval('PT5M'), // default: detection window when to retry (5 minutes)
             ),
 
-            CommandBus::class => static fn(Container $container) => new CommandBus($container),
+            CommandBus::class => static fn(
+                AggregateRootRegistry $aggregateRootRegistry,
+                RepositoryManager $repositoryManager,
+                Container $container,
+            ) => new SyncCommandBus(new AggregateHandlerProvider(
+                $aggregateRootRegistry,
+                $repositoryManager,
+                $container,
+            )),
 
             TreeMapper::class => static fn() => new MapperBuilder()
                 ->configureWith(new RestrictKeysToSnakeCase(), new ConvertKeysToCamelCase())
