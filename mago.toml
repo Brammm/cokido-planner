@@ -5,7 +5,7 @@ php-version = "8.5.0"
 
 [source]
 workspace = "."
-paths = ["bin", "public", "src"]
+paths = ["bin/cli", "public", "src", "tests"]
 includes = ["packages", "vendor"]
 excludes = ["vendor/nikic/fast-route/test/**", "vendor/brammm/smart/**", "packages/*/vendor/**"]
 
@@ -30,7 +30,7 @@ no-fully-qualified-global-function = { enabled = true }
 string-style = { enabled = true, style = "concatenation" }
 
 [analyzer]
-plugins = []
+plugins = ["psr-container"]
 find-unused-definitions = true
 find-unused-expressions = true
 analyze-dead-code = true

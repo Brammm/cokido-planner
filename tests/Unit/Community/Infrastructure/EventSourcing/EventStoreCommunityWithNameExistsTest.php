@@ -8,6 +8,7 @@ use CokidoPlanner\Community\Domain\Community\CommunityId;
 use CokidoPlanner\Community\Domain\Community\CommunityStartedByNewMember;
 use CokidoPlanner\Community\Domain\Community\Name;
 use CokidoPlanner\Community\Infrastructure\EventSourcing\EventStoreCommunityWithNameExists;
+use Override;
 use Patchlevel\EventSourcing\Message\Message;
 use Patchlevel\EventSourcing\Metadata\Event\AttributeEventRegistryFactory;
 use Patchlevel\EventSourcing\Store\InMemoryStore;
@@ -22,13 +23,14 @@ final class EventStoreCommunityWithNameExistsTest extends TestCase
 
     private EventStoreCommunityWithNameExists $sut;
 
+    #[Override]
     public function setUp(): void
     {
-        $eventRegistry    = new AttributeEventRegistryFactory()->create([
+        $eventRegistry = new AttributeEventRegistryFactory()->create([
             __DIR__ . '/../../../../../src/Community/Domain',
         ]);
         $this->eventStore = new InMemoryStore(eventRegistry: $eventRegistry);
-        $this->sut        = new EventStoreCommunityWithNameExists($this->eventStore, $eventRegistry);
+        $this->sut = new EventStoreCommunityWithNameExists($this->eventStore, $eventRegistry);
     }
 
     public function testReturnsFalseWhenNoCommunityWithNameExists(): void
@@ -38,8 +40,16 @@ final class EventStoreCommunityWithNameExistsTest extends TestCase
 
     public function testReturnsTrueWhenCommunityWithNameExists(): void
     {
-        $this->eventStore->save(Message::create(new CommunityStartedByNewMember(CommunityId::generate(), new Name('Community'), 'John', 'Doe', 'john@example.com')));
-        
+        $this->eventStore->save(Message::create(
+            new CommunityStartedByNewMember(
+                CommunityId::generate(),
+                new Name('Community'),
+                'John',
+                'Doe',
+                'john@example.com',
+            ),
+        ));
+
         self::assertTrue(($this->sut)(new Name('Community')));
     }
 }

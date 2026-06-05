@@ -15,6 +15,8 @@ FROM base AS development
 
 COPY --from=ghcr.io/php/pie:bin /pie /usr/bin/pie
 
+RUN apk add --no-cache sqlite-dev && docker-php-ext-install pdo_sqlite
+
 RUN apk add linux-headers $PHPIZE_DEPS && \
  pie install xdebug/xdebug:3.5.1 && \
  docker-php-ext-enable xdebug

@@ -116,6 +116,14 @@ final class App
         return self::$slim;
     }
 
+    public function container(): Container
+    {
+        $container = $this->getSlim()->getContainer();
+        assert($container instanceof Container, description: 'Container is not an instance of ' . Container::class);
+        
+        return $container;
+    }
+
     /**
      * @throws RuntimeException
      */
@@ -135,7 +143,7 @@ final class App
         $container = $this->getSlim()->getContainer();
         assert($container instanceof Container, description: 'Container is not an instance of ' . Container::class);
 
-        $response = $this->handle($container->get(ServerRequestCreator::class)->fromGlobals());
+        $response = $this->handle($this->container()->get(ServerRequestCreator::class)->fromGlobals());
 
         $emitter = new ResponseEmitter();
         $emitter->emit($response);

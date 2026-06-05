@@ -23,6 +23,7 @@
         "brammm/smart": "*@dev",
         "crell/envmapper": "^1.1",
         "cuyz/valinor": "^2.4",
+        "doctrine/persistence": "^4.2",
         "patchlevel/event-sourcing": "^3.19",
         "php-standard-library/str": "^6.2"
     },

@@ -15,6 +15,7 @@ use CokidoPlanner\Community\Domain\Member\MemberRepository;
 use CokidoPlanner\Community\Infrastructure\EventSourcing\ContainerSubscriberAccessorRepository;
 use CokidoPlanner\Community\Infrastructure\EventSourcing\EventStoreCommunityWithNameExists;
 use CokidoPlanner\Community\Infrastructure\Http\StartCommunityRequestHandler;
+use CokidoPlanner\Community\Infrastructure\Persistence\ConnectionRegistry;
 use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingCommunityRepository;
 use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingMemberRepository;
 use CokidoPlanner\Community\Infrastructure\Projection\CommunityProjector;
@@ -25,7 +26,6 @@ use CuyZ\Valinor\Mapper\Http\HttpRequest;
 use CuyZ\Valinor\Mapper\TreeMapper;
 use CuyZ\Valinor\MapperBuilder;
 use DI\Container;
-use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Tools\DsnParser;
 use Override;
@@ -57,7 +57,6 @@ use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 
-use function DI\factory;
 use function DI\get;
 
 final class CommunityContext implements Context
@@ -74,19 +73,17 @@ final class CommunityContext implements Context
     {
         return [
             ConnectionsEnv::class => static fn() => new EnvMapper()->map(ConnectionsEnv::class),
-            'connection.events' =>
-                static fn(ConnectionsEnv $env) => DriverManager::getConnection(new DsnParser()->parse($env->eventsDsn)),
-            'connection.projections' =>
-                static fn(ConnectionsEnv $env) => DriverManager::getConnection(new DsnParser()->parse($env->projectionsDsn)),
+            ConnectionRegistry::class => static fn(ConnectionsEnv $env) => new ConnectionRegistry(
+                DriverManager::getConnection(new DsnParser()->parse($env->eventsDsn)),
+                DriverManager::getConnection(new DsnParser()->parse($env->projectionsDsn)),
+            ),
             'subscribers' => [
                 get(CommunityProjector::class),
                 get(JoinCommunityProcessor::class),
                 get(RegisterMissingMemberProcessor::class),
             ],
-            CommunityProjector::class => factory(
-                static fn(Connection $connection) => new CommunityProjector($connection),
-            )
-                ->parameter('connection', get('connection.projections')),
+            CommunityProjector::class =>
+                static fn(ConnectionRegistry $connectionRegistry) => new CommunityProjector($connectionRegistry->projectionsConnection),
             EventRegistry::class => static fn() => new AttributeEventRegistryFactory()->create([
                 __DIR__ . '/../Domain',
             ]),
@@ -96,17 +93,14 @@ final class CommunityContext implements Context
             AggregateRootRegistry::class => static fn() => new AttributeAggregateRootRegistryFactory()->create([
                 __DIR__ . '/../Domain',
             ]),
-            Store::class => factory(static fn(
-                Connection $connection,
+            Store::class => static fn(
+                ConnectionRegistry $connectionRegistry,
                 EventSerializer $serializer,
-            ) => new DoctrineDbalStore($connection, $serializer))
-                ->parameter('connection', get('connection.events')),
+            ) => new DoctrineDbalStore($connectionRegistry->eventsConnection, $serializer),
             SubscriberAccessorRepository::class =>
                 static fn(Container $container) => new ContainerSubscriberAccessorRepository($container),
-            SubscriptionStore::class => factory(
-                static fn(Connection $connection) => new DoctrineSubscriptionStore($connection),
-            )
-                ->parameter('connection', get('connection.events')),
+            SubscriptionStore::class =>
+                static fn(ConnectionRegistry $connectionRegistry) => new DoctrineSubscriptionStore($connectionRegistry->eventsConnection),
             ClockInterface::class => static fn() => new SystemClock(),
             MessageLoader::class => static fn(Store $store, ClockInterface $clock) => new GapResolverStoreMessageLoader(
                 $store,

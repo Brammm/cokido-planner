@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Community\Domain\Community;
 
 use CokidoPlanner\Community\Domain\Community\Name;
+use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -16,11 +17,11 @@ final class NameTest extends TestCase
     public function testItOutputsCorrectSlugForName(string $name, string $expects): void
     {
         $slug = new Name($name);
-        
+
         self::assertSame($expects, $slug->slug());
     }
 
-    public static function provideNames(): \Generator
+    public static function provideNames(): Generator
     {
         yield ['Community', 'community'];
         yield [' Community ', 'community'];
