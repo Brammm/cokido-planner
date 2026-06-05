@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CokidoPlanner\Community\Infrastructure;
 
+use Brammm\Smart\AppEnv;
 use Brammm\Smart\Context;
 use Brammm\Smart\Psr7\DefaultResponses;
 use CokidoPlanner\Community\Application\Community\JoinCommunityProcessor;
@@ -11,6 +12,7 @@ use CokidoPlanner\Community\Application\Member\RegisterMissingMemberProcessor;
 use CokidoPlanner\Community\Domain\Community\CommunityRepository;
 use CokidoPlanner\Community\Domain\Community\CommunityWithNameExists;
 use CokidoPlanner\Community\Domain\Member\MemberRepository;
+use CokidoPlanner\Community\Infrastructure\EventSourcing\ContainerSubscriberAccessorRepository;
 use CokidoPlanner\Community\Infrastructure\EventSourcing\EventStoreCommunityWithNameExists;
 use CokidoPlanner\Community\Infrastructure\Http\StartCommunityRequestHandler;
 use CokidoPlanner\Community\Infrastructure\Persistence\EventSourcingCommunityRepository;
@@ -22,7 +24,6 @@ use CuyZ\Valinor\Mapper\Configurator\RestrictKeysToSnakeCase;
 use CuyZ\Valinor\Mapper\Http\HttpRequest;
 use CuyZ\Valinor\Mapper\TreeMapper;
 use CuyZ\Valinor\MapperBuilder;
-use DateInterval;
 use DI\Container;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
@@ -42,13 +43,15 @@ use Patchlevel\EventSourcing\Serializer\DefaultEventSerializer;
 use Patchlevel\EventSourcing\Serializer\EventSerializer;
 use Patchlevel\EventSourcing\Store\DoctrineDbalStore;
 use Patchlevel\EventSourcing\Store\Store;
+use Patchlevel\EventSourcing\Subscription\Engine\CatchUpSubscriptionEngine;
 use Patchlevel\EventSourcing\Subscription\Engine\DefaultSubscriptionEngine;
 use Patchlevel\EventSourcing\Subscription\Engine\GapResolverStoreMessageLoader;
 use Patchlevel\EventSourcing\Subscription\Engine\MessageLoader;
 use Patchlevel\EventSourcing\Subscription\Engine\SubscriptionEngine;
+use Patchlevel\EventSourcing\Subscription\Engine\ThrowOnErrorSubscriptionEngine;
+use Patchlevel\EventSourcing\Subscription\Repository\RunSubscriptionEngineRepositoryManager;
 use Patchlevel\EventSourcing\Subscription\Store\DoctrineSubscriptionStore;
 use Patchlevel\EventSourcing\Subscription\Store\SubscriptionStore;
-use Patchlevel\EventSourcing\Subscription\Subscriber\MetadataSubscriberAccessorRepository;
 use Patchlevel\EventSourcing\Subscription\Subscriber\SubscriberAccessorRepository;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -98,31 +101,61 @@ final class CommunityContext implements Context
                 EventSerializer $serializer,
             ) => new DoctrineDbalStore($connection, $serializer))
                 ->parameter('connection', get('connection.events')),
-            SubscriberAccessorRepository::class => factory(
-                /** @param list<object> $subscribers */
-                static fn(array $subscribers) => new MetadataSubscriberAccessorRepository($subscribers),
-            )
-                ->parameter('subscribers', get('subscribers')),
+            SubscriberAccessorRepository::class =>
+                static fn(Container $container) => new ContainerSubscriberAccessorRepository($container),
             SubscriptionStore::class => factory(
                 static fn(Connection $connection) => new DoctrineSubscriptionStore($connection),
             )
                 ->parameter('connection', get('connection.events')),
-            SubscriptionEngine::class => static fn(
-                MessageLoader $messageLoader,
-                SubscriptionStore $subscriptionStore,
-                SubscriberAccessorRepository $subscriberAccessorRepository,
-            ) => new DefaultSubscriptionEngine($messageLoader, $subscriptionStore, $subscriberAccessorRepository),
-            RepositoryManager::class => static fn(
-                AggregateRootRegistry $aggregateRootRegistry,
-                Store $eventStore,
-            ) => new DefaultRepositoryManager($aggregateRootRegistry, $eventStore),
             ClockInterface::class => static fn() => new SystemClock(),
             MessageLoader::class => static fn(Store $store, ClockInterface $clock) => new GapResolverStoreMessageLoader(
                 $store,
                 $clock,
-                [0, 5, 50, 500], // default: retries in milliseconds (0 means immediate)
-                new DateInterval('PT5M'), // default: detection window when to retry (5 minutes)
             ),
+            SubscriptionEngine::class => static function (
+                AppEnv $appEnv,
+                Store $eventStore,
+                MessageLoader $messageLoader,
+                SubscriptionStore $subscriptionStore,
+                SubscriberAccessorRepository $subscriberAccessorRepository,
+            ) {
+                $storeOrLoader = $messageLoader;
+                if ($appEnv->debug) {
+                    $storeOrLoader = $eventStore;
+                }
+
+                $subscriptionEngine = new DefaultSubscriptionEngine(
+                    $storeOrLoader,
+                    $subscriptionStore,
+                    $subscriberAccessorRepository,
+                );
+
+                if ($appEnv->debug) {
+                    $subscriptionEngine = new ThrowOnErrorSubscriptionEngine(
+                        new CatchUpSubscriptionEngine($subscriptionEngine),
+                    );
+                }
+
+                return $subscriptionEngine;
+            },
+            RepositoryManager::class => static function (
+                AppEnv $appEnv,
+                AggregateRootRegistry $aggregateRootRegistry,
+                SubscriptionEngine $subscriptionEngine,
+                Store $eventStore,
+                ClockInterface $clock,
+            ) {
+                $repositoryManager = new DefaultRepositoryManager($aggregateRootRegistry, $eventStore, clock: $clock);
+
+                if ($appEnv->debug) {
+                    $repositoryManager = new RunSubscriptionEngineRepositoryManager(
+                        $repositoryManager,
+                        $subscriptionEngine,
+                    );
+                }
+
+                return $repositoryManager;
+            },
 
             CommandBus::class => static fn(
                 AggregateRootRegistry $aggregateRootRegistry,

@@ -20,3 +20,4 @@ tasks:
             - docker compose exec php bin/cli event-sourcing:schema:drop --force
             - docker compose exec php bin/cli event-sourcing:schema:create
             - docker compose exec php bin/cli event-sourcing:subscription:remove
+            - docker compose exec php bin/cli event-sourcing:subscription:boot --setup
