@@ -17,7 +17,7 @@ tasks:
     schema:rebuild:
         prompt: "Are you sure? This will destroy all previous events."
         cmds:
+            - docker compose exec php bin/cli event-sourcing:subscription:remove
             - docker compose exec php bin/cli event-sourcing:schema:drop --force
             - docker compose exec php bin/cli event-sourcing:schema:create
-            - docker compose exec php bin/cli event-sourcing:subscription:remove
             - docker compose exec php bin/cli event-sourcing:subscription:boot --setup
